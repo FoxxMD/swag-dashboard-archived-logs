@@ -4,13 +4,18 @@ echo "**** Checking if existing logs should be preloaded into SWAG dashboard mod
 
 declare CONF_FILE="/dashboard/goaccess.conf"
 
+# the number of archived files (most recent) to ingest
+# 100 is a reasonable amount to ingest "all"
+# EX: 10 => ingest the 10 most recent archived files
+declare INGEST_LAST_NUM=100
+
 # sanity check conf is where we expect it to be
 if [ ! -f "${CONF_FILE}" ]; then
     echo "**** goaccess config is not in default location, skipping ****"
     exit 0
 fi
 
-declare FILE_CONTENT=$( cat "${CONF_FILE}" )
+FILE_CONTENT=$( cat "${CONF_FILE}" )
 
 # only continue if the correct (default) persist/save settings in goaccess conf are found to avoid
 # clobbering goaccess data in event of custom user conf
@@ -63,7 +68,7 @@ mkdir -p /tmp
 # https://github.com/allinurl/goaccess#notes
 
 # Check for and process compressed logs (earlier, rotated out, and archived by nginx)
-compressed=$(find $LOG_DIR -regex '.*access.log.\d*.gz' -print0 | sort -rzV | xargs -r0 zcat)
+compressed=$(find $LOG_DIR -regex '.*access.log.\d*.gz' -print0 | sort -rzV | tail -z -n $INGEST_LAST_NUM | xargs -r0 zcat)
 comLength=${#compressed}
 echo "**** Compressed logs length: $comLength ****"
 if [ "$comLength" -gt "0" ]; then
